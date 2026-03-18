@@ -2,7 +2,7 @@ import { validationResult } from 'express-validator';
 import Contact from '../models/Contact.js';
 import { sendContactNotification, sendAutoReply } from '../config/email.js';
 
-// POST /api/contact
+
 export const submitContact = async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -12,26 +12,33 @@ export const submitContact = async (req, res, next) => {
 
     const { name, email, phone, company, service, budget, message } = req.body;
 
+    // ✅ Save to DB
     const contact = await Contact.create({
-      name, email, phone, company, service, budget, message,
+      name,
+      email,
+      phone,
+      company,
+      service,
+      budget,
+      message,
       ipAddress: req.ip,
     });
 
-    // Fire emails (non-blocking — don't fail request if email fails)
-    try {
-      await Promise.all([
-        sendContactNotification(contact),
-        sendAutoReply(contact),
-      ]);
-    } catch (emailErr) {
-      console.warn('⚠️  Email send failed (contact saved):', emailErr.message);
-    }
-
+    // ✅ तुरंत response भेजो (FAST)
     res.status(201).json({
       success: true,
-      message: 'Message received! We\'ll be in touch within 24–48 hours.',
+      message: "Message received! We'll contact you soon.",
       data: { id: contact._id },
     });
+
+    // ✅ Emails background में भेजो (NON-BLOCKING)
+    Promise.all([
+      sendContactNotification(contact),
+      sendAutoReply(contact),
+    ]).catch((err) => {
+      console.warn("⚠️ Email failed:", err.message);
+    });
+
   } catch (err) {
     next(err);
   }
