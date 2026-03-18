@@ -17,6 +17,7 @@ import projectRoutes    from './routes/projects.js';
 
 // ✅ app create first
 const app = express();
+app.use(cors());
 
 // ── Middleware ───────────────────────────────────────────
 app.use(helmet());
